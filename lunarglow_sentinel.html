@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LunarGlow: High-Voltage Microgrid Vacuum Partial Discharge Sentinel</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Bulletproof MathJax Configuration -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #03050a;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .formula-box {
+      background-color: #070b14;
+      border: 1px solid #1e293b;
+      padding: 0.85rem;
+      border-radius: 0.5rem;
+      color: #38bdf8;
+      overflow-x: auto;
+    }
+    /* Glow utilities */
+    .glow-cyan {
+      box-shadow: 0 0 15px -3px rgba(6, 182, 212, 0.45);
+    }
+    .glow-rose {
+      box-shadow: 0 0 15px -3px rgba(244, 63, 94, 0.45);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 15px -3px rgba(16, 185, 129, 0.45);
+    }
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #080c14;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#03050a] text-slate-100">
+
+  <!-- Top Navigation Header -->
+  <header class="border-b border-slate-800/80 bg-[#070b14]/90 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+          <i data-lucide="zap" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-base tracking-wider text-white">LUNARGLOW</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-cyan-950 text-cyan-300 border border-cyan-800/80">
+              NASA SBIR T4.02
+            </span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 flex items-center space-x-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
+              <span>10 kV GRID SENTINEL</span>
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 font-mono">Vacuum Partial Discharge & Flashover Precursor Observer</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex items-center space-x-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+        <button id="tabBtnSim" onclick="switchTab('sim')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 flex items-center space-x-2 text-white bg-cyan-600/30 border border-cyan-500/40 shadow-sm">
+          <i data-lucide="activity" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>Live Sentinel HUD</span>
+        </button>
+        <button id="tabBtnPhysics" onclick="switchTab('physics')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 flex items-center space-x-2 text-slate-400 hover:text-slate-200">
+          <i data-lucide="atom" class="w-3.5 h-3.5"></i>
+          <span>Vacuum Physics</span>
+        </button>
+        <button id="tabBtnProposal" onclick="switchTab('proposal')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 flex items-center space-x-2 text-slate-400 hover:text-slate-200">
+          <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+          <span>NASA Proposal</span>
+        </button>
+        <button id="tabBtnARR" onclick="switchTab('arr')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 flex items-center space-x-2 text-slate-400 hover:text-slate-200">
+          <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+          <span>Commercial ARR ($245M)</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Viewports -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: LIVE SIMULATION & TELEMETRY HUD     -->
+    <!-- ========================================== -->
+    <div id="viewSim" class="space-y-6">
+      
+      <!-- Top Alert & Telemetry Summary Ribbon -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-slate-900/40 backdrop-blur border border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-mono uppercase text-slate-400">Line Voltage ($V_{\text{bus}}$)</div>
+            <div id="statVoltage" class="text-2xl font-bold font-mono text-cyan-400 mt-1">10.0 kV</div>
+            <div class="text-[10px] text-slate-500 font-mono mt-0.5">Nominal Operating Baseline</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-cyan-950/60 border border-cyan-800/50 flex items-center justify-center text-cyan-400">
+            <i data-lucide="gauge" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/40 backdrop-blur border border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-mono uppercase text-slate-400">Spectral Conductance ($G$)</div>
+            <div id="statConductance" class="text-2xl font-bold font-mono text-emerald-400 mt-1">0.12 nS</div>
+            <div class="text-[10px] text-slate-500 font-mono mt-0.5">Safe Inception Margin: &gt; 85%</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-emerald-950/60 border border-emerald-800/50 flex items-center justify-center text-emerald-400">
+            <i data-lucide="radio" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/40 backdrop-blur border border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-mono uppercase text-slate-400">Peak Harmonic Freq ($f_c$)</div>
+            <div id="statFrequency" class="text-2xl font-bold font-mono text-cyan-300 mt-1">14.2 kHz</div>
+            <div class="text-[10px] text-slate-500 font-mono mt-0.5">HF Ionization Shift Band</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-indigo-950/60 border border-indigo-800/50 flex items-center justify-center text-indigo-400">
+            <i data-lucide="waves" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/40 backdrop-blur border border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-mono uppercase text-slate-400">Sentinel Discharge State</div>
+            <div id="statStateBadge" class="mt-1 flex items-center space-x-2">
+              <span class="px-2.5 py-1 rounded text-xs font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/60 flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="statStateText">VACUUM NOMINAL</span>
+              </span>
+            </div>
+            <div id="statActionText" class="text-[10px] text-slate-500 font-mono mt-1">Auto Mitigation: Ready</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-slate-800/60 border border-slate-700/50 flex items-center justify-center text-slate-300">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Interactive Row: Physical Cross-Section Canvas & Phase-Space Chart -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Physical Transmission Line & Plasma Physics Canvas (7 Cols) -->
+        <div class="lg:col-span-7 bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="cable" class="w-4 h-4 text-cyan-400"></i>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-200">
+                Lunar Surface 10 kV DC Cable Joint & Regolith Micro-Plasma Chamber
+              </span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="text-[10px] font-mono text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded border border-slate-700">
+                P: <span id="labelPressure">1.0e-10</span> Torr
+              </span>
+              <span class="text-[10px] font-mono text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded border border-slate-700">
+                Regolith: <span id="labelRegolith">0</span>%
+              </span>
+            </div>
+          </div>
+
+          <!-- The Hardware Canvas -->
+          <div class="relative w-full h-72 sm:h-80 bg-[#020408] rounded-lg border border-slate-800/80 overflow-hidden">
+            <canvas id="cableCanvas" class="w-full h-full block"></canvas>
+            
+            <!-- Canvas HUD Overlays -->
+            <div class="absolute bottom-3 left-3 bg-slate-900/90 border border-slate-800 p-2.5 rounded-md text-[10px] font-mono space-y-1 pointer-events-none">
+              <div class="text-cyan-400 font-semibold flex items-center space-x-1">
+                <i data-lucide="crosshair" class="w-3 h-3"></i>
+                <span>PD SENSOR MATRIX: JOINT #4L-SOUTH</span>
+              </div>
+              <div class="text-slate-300">Corona Inception Point: <span id="hudInceptionVal" class="text-emerald-400">Inactive</span></div>
+              <div class="text-slate-300">Surface Secondary Emission $\gamma_{se}$: <span id="hudGammaVal" class="text-slate-200">0.018</span></div>
+            </div>
+
+            <div id="mitigationBanner" class="hidden absolute top-3 right-3 bg-cyan-950/90 border border-cyan-500/60 text-cyan-200 px-3 py-1.5 rounded-lg text-xs font-mono flex items-center space-x-2 animate-bounce">
+              <i data-lucide="refresh-cw" class="w-4 h-4 text-cyan-400 animate-spin"></i>
+              <span>PDU AUTO-MITIGATION: Voltage Cut to 2.5 kV & Electrostatic Dust Quench Active</span>
+            </div>
+          </div>
+
+          <!-- Real-Time Hardware Actions -->
+          <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center space-x-2">
+              <button onclick="injectRegolithBurst()" class="px-3 py-1.5 bg-amber-950/60 hover:bg-amber-900/70 border border-amber-700/60 text-amber-300 rounded-lg font-mono flex items-center space-x-1.5 transition">
+                <i data-lucide="cloud-rain" class="w-3.5 h-3.5"></i>
+                <span>Inject Regolith Swarm</span>
+              </button>
+              <button onclick="triggerOutgassingLeak()" class="px-3 py-1.5 bg-rose-950/60 hover:bg-rose-900/70 border border-rose-700/60 text-rose-300 rounded-lg font-mono flex items-center space-x-1.5 transition">
+                <i data-lucide="flame" class="w-3.5 h-3.5"></i>
+                <span>Seal Failure (Paschen Min)</span>
+              </button>
+              <button onclick="resetGridNominal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg font-mono flex items-center space-x-1.5 transition">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                <span>Reset Baseline</span>
+              </button>
+            </div>
+            <div class="text-[11px] text-slate-400 font-mono flex items-center space-x-1">
+              <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+              <span>Closed-Loop PDU Autonomous Watchdog Active</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase-Space Chart: Conductance (G) vs Frequency (f) (5 Cols) -->
+        <div class="lg:col-span-5 bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="scatter-chart" class="w-4 h-4 text-violet-400"></i>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-200">
+                Phase-Space: Conductance ($G$) vs. Frequency ($f$)
+              </span>
+            </div>
+            <span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800/60 px-2 py-0.5 rounded">
+              High-Frequency Shift Corridors
+            </span>
+          </div>
+
+          <p class="text-[11px] text-slate-400 mb-2 leading-relaxed">
+            Pre-breakdown ionization in a hard vacuum shifts spectral admittance towards higher harmonic frequencies ($f$) as localized corona micro-pulses ignite before catastrophic breakdown.
+          </p>
+
+          <div class="relative w-full h-72 sm:h-80 bg-[#020408] rounded-lg border border-slate-800/80 p-2">
+            <canvas id="phaseSpaceChart"></canvas>
+          </div>
+
+          <div class="mt-3 text-[10px] font-mono text-slate-400 flex items-center justify-between px-1">
+            <span class="flex items-center space-x-1 text-emerald-400">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+              <span>Nominal Grid Corridor</span>
+            </span>
+            <span class="flex items-center space-x-1 text-amber-400">
+              <span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
+              <span>Pre-Discharge Corona ($10\text{--}50\text{ kHz}$)</span>
+            </span>
+            <span class="flex items-center space-x-1 text-rose-400">
+              <span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
+              <span>Arc Flashover Boundary</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Closed Loop Sliders & Secondary Telemetry Time-Series -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Controls & Environmental Fault Injection Panel (5 Cols) -->
+        <div class="lg:col-span-5 bg-slate-900/50 border border-slate-800 rounded-xl p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-200">Transmission Grid Control Loop</span>
+            </div>
+            <span class="text-[10px] font-mono text-slate-400">Update Rate: 25 Hz</span>
+          </div>
+
+          <!-- Slider 1: HVDC Operating Voltage -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-slate-300">PDU Voltage Setpoint ($V_{\text{dc}}$)</span>
+              <span id="sliderVoltageVal" class="text-cyan-400 font-bold">10.0 kV</span>
+            </div>
+            <input type="range" id="inputVoltage" min="1.0" max="12.0" step="0.1" value="10.0" 
+              class="w-full accent-cyan-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+            <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+              <span>1.0 kV (Quenched)</span>
+              <span>5.0 kV</span>
+              <span>10.0 kV (Nominal)</span>
+              <span>12.0 kV (Stress)</span>
+            </div>
+          </div>
+
+          <!-- Slider 2: Micro-Atmosphere / Joint Leak Pressure (Paschen Dip) -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-slate-300">Joint Void Gas Pressure ($P$)</span>
+              <span id="sliderPressureVal" class="text-indigo-400 font-bold">1.0e-7 Torr (Vacuum)</span>
+            </div>
+            <input type="range" id="inputPressure" min="-9" max="1" step="0.1" value="-7" 
+              class="w-full accent-indigo-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+            <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+              <span>$10^{-9}$ (Hard Vac)</span>
+              <span>$10^{-4}$</span>
+              <span class="text-rose-400 font-semibold">$10^{-1}$ (Paschen Min)</span>
+              <span>$10$ Torr</span>
+            </div>
+          </div>
+
+          <!-- Slider 3: Lunar Regolith Dust Density -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-slate-300">Electrostatic Dust Coverage ($\sigma_{\text{dust}}$)</span>
+              <span id="sliderDustVal" class="text-amber-400 font-bold">5 %</span>
+            </div>
+            <input type="range" id="inputDust" min="0" max="100" step="1" value="5" 
+              class="w-full accent-amber-400 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+            <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+              <span>0% Pristine</span>
+              <span>35% Rover Plume</span>
+              <span>70% Caked</span>
+              <span>100% Saturated</span>
+            </div>
+          </div>
+
+          <!-- Autonomous Safeguard Toggle -->
+          <div class="pt-3 border-t border-slate-800 flex items-center justify-between">
+            <div>
+              <div class="text-xs font-semibold text-slate-200">Autonomous Sentinel Governor</div>
+              <div class="text-[11px] text-slate-400">Trigger active step-down & dust acoustic sweep</div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="toggleAutoGovernor" checked class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Telemetry History Plots (7 Cols) -->
+        <div class="lg:col-span-7 bg-slate-900/50 border border-slate-800 rounded-xl p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="line-chart" class="w-4 h-4 text-emerald-400"></i>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-200">Real-Time Spectral Dynamics & Precursor Tracking</span>
+            </div>
+            <span class="text-[10px] font-mono text-emerald-400 flex items-center space-x-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Rolling 60-Second Window</span>
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="h-44 bg-[#020408] rounded-lg border border-slate-800 p-2">
+              <canvas id="timeSeriesConductance"></canvas>
+            </div>
+            <div class="h-44 bg-[#020408] rounded-lg border border-slate-800 p-2">
+              <canvas id="timeSeriesFrequency"></canvas>
+            </div>
+          </div>
+
+          <div class="p-3 bg-slate-950 rounded-lg border border-slate-800/80 flex items-center justify-between text-xs font-mono">
+            <div class="flex items-center space-x-3">
+              <div class="text-slate-400">Detection Confidence:</div>
+              <div id="telemetryConfidence" class="text-cyan-400 font-bold">99.4% (SNR 42.1 dB)</div>
+            </div>
+            <div class="flex items-center space-x-3">
+              <div class="text-slate-400">Time to Arc Flash:</div>
+              <div id="telemetryLeadTime" class="text-emerald-400 font-bold">&gt; 120 s (Nominal)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: CORE PHYSICS & MATHEMATICAL MODEL   -->
+    <!-- ========================================== -->
+    <div id="viewPhysics" class="hidden space-y-6">
+      <div class="border-b border-slate-800 pb-4">
+        <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+          <i data-lucide="atom" class="w-5 h-5 text-cyan-400"></i>
+          <span>Vacuum Micro-Plasma Physics & Spectral Admittance Formulation</span>
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">
+          Governing electrodynamics of Paschen-minimum corona inception, Townsend secondary electron multiplication, and regolith-induced dielectric breakdown along lunar 10 kV unshielded cables.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Card 1: Modified Paschen Curve & Townsend Ionization in Deep Vacuum -->
+        <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-5 space-y-3">
+          <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-400 font-mono text-sm font-bold">01</div>
+            <div>
+              <h3 class="text-sm font-bold text-white">Modified Paschen Law in Lunar Degassing Voids</h3>
+              <p class="text-[11px] text-slate-400">Pressure-Distance scaling for cable terminations</p>
+            </div>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            In ambient lunar ultra-high vacuum ($P < 10^{-10}\text{ Torr}$), mean free paths $\lambda_{mfp} \gg d$, suppressing avalanche breakdown. However, outgassing from polymeric joint potting or volatile lunar regolith creates micro-void pressures ($10^{-2}\text{ to }1\text{ Torr}$) right at the critical Paschen breakdown minimum.
+          </p>
+          <div class="formula-box">
+            $$V_B = \frac{B \cdot (P \cdot d)}{\ln[A \cdot (P \cdot d)] - \ln\left[\ln\left(1 + \frac{1}{\gamma_{se}}\right)\right]}$$
+          </div>
+          <p class="text-[11px] text-slate-400">
+            Where $A$ and $B$ are gas composition constants (primarily CO, $\text{CO}_2$, and $\text{H}_2\text{O}$ outgassing), $d$ is joint gap separation, and $\gamma_{se}$ is the second Townsend secondary electron emission coefficient under high electric field stress $\mathbf{E} > 3\times 10^6 \text{ V/m}$.
+          </p>
+        </div>
+
+        <!-- Card 2: Spectral Conductance Inception Shift Formulation -->
+        <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-5 space-y-3">
+          <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 rounded-lg bg-indigo-950 border border-indigo-800 flex items-center justify-center text-indigo-400 font-mono text-sm font-bold">02</div>
+            <div>
+              <h3 class="text-sm font-bold text-white">High-Frequency Admittance Inversion: $(f, G)$</h3>
+              <p class="text-[11px] text-slate-400">Spectral precursor signature prior to macro-arc flashover</p>
+            </div>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Corona pre-breakdown produces localized Townsend micro-pulsing bursts ($10\text{--}100\text{ kHz}$) before bulk DC current escalates. By probing line admittance $Y(\omega) = G(\omega) + j\omega C(\omega)$, the real high-frequency conductance $G(\omega)$ reveals active micro-plasma charge transport.
+          </p>
+          <div class="formula-box">
+            $$G(f) = \text{Re}[Y(f)] = \frac{\pi f \varepsilon_0 \varepsilon_r'' |\mathbf{E}|^2}{\int |\mathbf{E}|^2 dV} + \sum_{k=1}^N \frac{q_e \mu_e n_e(k)}{1 + (2\pi f \tau_c)^2}$$
+          </div>
+          <p class="text-[11px] text-slate-400">
+            Where $n_e(k)$ is the electron avalanche density in the $k$-th joint micro-void, $\tau_c$ is ion-neutral momentum transfer relaxation time, and $\varepsilon_r''$ represents localized loss-factor degradation from carbonized tracking.
+          </p>
+        </div>
+
+        <!-- Card 3: Regolith Dust Charging & Triboelectric Field Enhancement -->
+        <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-5 space-y-3">
+          <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 rounded-lg bg-amber-950 border border-amber-800 flex items-center justify-center text-amber-400 font-mono text-sm font-bold">03</div>
+            <div>
+              <h3 class="text-sm font-bold text-white">Regolith Dielectric Triple-Junction Enhancement</h3>
+              <p class="text-[11px] text-slate-400">Electrostatic flashover mechanics on exposed transmission lines</p>
+            </div>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Lunar regolith contains fine grains ($< 20\,\mu\text{m}$) rich in anorthite, pyroxene, and submicroscopic metallic iron ($\text{Fe}^0$). When deposited on cable insulation, particles charge under solar UV photoemission and HVDC fringe fields, forming triple-junction stress concentrators.
+          </p>
+          <div class="formula-box">
+            $$\mathbf{E}_{\text{local}} = \beta \cdot \frac{V_{\text{dc}}}{r_{\text{cable}} \ln(R_{\text{ground}} / r_{\text{cable}})} \cdot \left[1 + 2\left(\frac{\varepsilon_{\text{regolith}} - 1}{\varepsilon_{\text{regolith}} + 2}\right)\right]$$
+          </div>
+          <p class="text-[11px] text-slate-400">
+            Field enhancement factor $\beta > 8.5$ at jagged grain contact asperities drops local vacuum breakdown thresholds by $82\%$, inducing rapid surface flashover if not detected and mitigated within milliseconds.
+          </p>
+        </div>
+
+        <!-- Card 4: Hardware Sensor Architecture & Closed-Loop PDU Control -->
+        <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-5 space-y-3">
+          <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 rounded-lg bg-emerald-950 border border-emerald-800 flex items-center justify-center text-emerald-400 font-mono text-sm font-bold">04</div>
+            <div>
+              <h3 class="text-sm font-bold text-white">Closed-Loop Autonomous PDU Action Matrix</h3>
+              <p class="text-[11px] text-slate-400">Dynamic voltage de-stressing and electrostatic dust clearing</p>
+            </div>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            The LunarGlow Sentinel couples high-frequency Rogowski coils and capacitive field probes at each Power Distribution Unit (PDU). When the $(f, G)$ state observer crosses into the micro-plasma hazard envelope:
+          </p>
+          <div class="formula-box">
+            $$\Delta V_{\text{step}} = -\kappa_v \int [G(f_h) - G_{\text{safe}}] df, \quad f_{\text{acoustic}} \in [18\text{ kHz}, 45\text{ kHz}]$$
+          </div>
+          <p class="text-[11px] text-slate-400">
+            The system executes a sub-10 ms step-down to $2.5\text{ kV}$, below the Paschen extinction limit, while superimposing a high-frequency AC ripple to electrostatically loiter and eject charged regolith particles via dielectrophoretic repulsion.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: NASA SBIR/STTR PROPOSAL & HARDWARE  -->
+    <!-- ========================================== -->
+    <div id="viewProposal" class="hidden space-y-6">
+      <div class="border-b border-slate-800 pb-4 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
+              SOLICITATION SBIR/STTR 2026-I
+            </span>
+            <span class="text-xs text-slate-400 font-mono">Topic: T4.02 Lunar Surface Power Transmission & Distribution</span>
+          </div>
+          <h2 class="text-xl font-bold text-white mt-1">LunarGlow: Autonomous High-Voltage Vacuum Partial Discharge Sentinel</h2>
+        </div>
+        <div class="text-right">
+          <div class="text-sm font-mono font-bold text-cyan-400">Phase I Budget: $225,000</div>
+          <div class="text-[11px] text-slate-400 font-mono">Period of Performance: 6 Months</div>
+        </div>
+      </div>
+
+      <!-- STTR Academic Research Partner Card -->
+      <div class="bg-gradient-to-r from-slate-900/90 via-indigo-950/30 to-slate-900/90 border border-indigo-800/60 rounded-xl p-5">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 rounded-xl bg-indigo-900/40 border border-indigo-700/60 flex items-center justify-center text-indigo-300">
+              <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <div class="text-xs font-mono text-indigo-400 uppercase tracking-wider font-semibold">STTR Research Institution Subcontractor</div>
+              <h3 class="text-base font-bold text-white">University of Central Florida (UCF) — Exolith & CATER Vacuum Plasma Labs</h3>
+              <div class="text-xs text-slate-300 mt-0.5">Faculty Lead: Prof. of Plasma Physics & High-Voltage Dielectrics</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-950 text-indigo-300 border border-indigo-700">
+              30.0% STTR Allocation: $67,500
+            </span>
+          </div>
+        </div>
+        <p class="text-xs text-slate-300 mt-3 leading-relaxed">
+          UCF CATER facility operates high-vacuum test chambers ($10^{-8}\text{ Torr}$) equipped with Lunar Highlands Simulant (LHS-1) and high-voltage DC feeds up to $25\text{ kV}$. UCF provides empirical validation of Paschen minimum curves under thermal vacuum cycling ($-180^\circ\text{C}$ to $+120^\circ\text{C}$) and spectral HF sensor calibration.
+        </p>
+      </div>
+
+      <!-- 6-Month Phase I Work Breakdown -->
+      <div class="space-y-3">
+        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+          <i data-lucide="calendar" class="w-4 h-4 text-cyan-400"></i>
+          <span>Phase I Work Breakdown Schedule (Months 1–6)</span>
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+            <div class="text-xs font-mono text-cyan-400 font-bold mb-1">M1–M2: Kinetic Modeling</div>
+            <h4 class="text-xs font-semibold text-white">PIC-MCC Micro-Plasma Simulation</h4>
+            <p class="text-[11px] text-slate-400 mt-2">
+              Particle-In-Cell with Monte Carlo Collisions modeling of cable joint outgassing under $1\text{--}10\text{ kV}$ DC bias. Derivation of $(f, G)$ admittance transfer functions across $100\text{ Hz}\text{--}1\text{ MHz}$.
+            </p>
+            <div class="mt-3 text-[10px] font-mono text-slate-500">Deliverable: Kinetic Model Report & Admittance Atlas</div>
+          </div>
+
+          <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+            <div class="text-xs font-mono text-cyan-400 font-bold mb-1">M3–M4: Sensor Inversion</div>
+            <h4 class="text-xs font-semibold text-white">DSP Sentinel State Observer</h4>
+            <p class="text-[11px] text-slate-400 mt-2">
+              Embedded Kalman state observer algorithm estimating localized Townsend ionization currents from broadband Rogowski coil spectral impedance measurements in real time.
+            </p>
+            <div class="mt-3 text-[10px] font-mono text-slate-500">Deliverable: Embedded C++ Admittance Observer Firmware</div>
+          </div>
+
+          <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+            <div class="text-xs font-mono text-cyan-400 font-bold mb-1">M5: UCF Vacuum Validation</div>
+            <h4 class="text-xs font-semibold text-white">Thermal-Vacuum & LHS-1 Regolith Testing</h4>
+            <p class="text-[11px] text-slate-400 mt-2">
+              Chamber testing at UCF CATER facility with LHS-1 regolith dust loading on $10\text{ kV}$ cable specimens under cryogenic vacuum conditions. Sub-millisecond pre-breakdown detection verification.
+            </p>
+            <div class="mt-3 text-[10px] font-mono text-slate-500">Deliverable: Empirical T-Vac Validation Dataset</div>
+          </div>
+
+          <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+            <div class="text-xs font-mono text-cyan-400 font-bold mb-1">M6: Phase II Architecture</div>
+            <h4 class="text-xs font-semibold text-white">Radiation-Hardened PDU Module</h4>
+            <p class="text-[11px] text-slate-400 mt-2">
+              Finalizing microgrid PDU hardware specs for radiation-tolerant FPGA implementation, closed-loop de-stressing circuit switches, and multi-drop RS-485/CAN-FD telemetry for Artemis Base Camp.
+            </p>
+            <div class="mt-3 text-[10px] font-mono text-slate-500">Deliverable: Phase II Prototype Spec & Proposal</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase II Hardware Transition Roadmap -->
+      <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-5 space-y-3">
+        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+          <i data-lucide="layers" class="w-4 h-4 text-emerald-400"></i>
+          <span>NASA Phase II Transition & Mission Flight Insertion ($1,100,000 / 24 Months)</span>
+        </h3>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          Phase II will manufacture flight-qualifiable radiation-hardened PDU Sentinel daughterboards integrated into the NASA Fission Surface Power (FSP) distribution grid and commercial lunar lander payload interfaces (CLPS). Test articles will undergo radiation testing at Texas A&M Cyclotron and full vacuum arc-quench qualification up to $20\text{ kV}$ DC.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs font-mono">
+          <div class="p-3 bg-slate-950 rounded border border-slate-800">
+            <div class="text-slate-400">Target TRL Exit (Phase I):</div>
+            <div class="text-cyan-400 font-bold text-sm">TRL 3 $\to$ TRL 4</div>
+          </div>
+          <div class="p-3 bg-slate-950 rounded border border-slate-800">
+            <div class="text-slate-400">Target TRL Exit (Phase II):</div>
+            <div class="text-emerald-400 font-bold text-sm">TRL 4 $\to$ TRL 6 (Flight Ready)</div>
+          </div>
+          <div class="p-3 bg-slate-950 rounded border border-slate-800">
+            <div class="text-slate-400">Target Infusion Program:</div>
+            <div class="text-indigo-300 font-bold text-sm">Artemis Base Camp FSP / CLPS</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: COMMERCIAL & NATIONWIDE ARR         -->
+    <!-- ========================================== -->
+    <div id="viewARR" class="hidden space-y-6">
+      
+      <!-- Executive Summary Header -->
+      <div class="border-b border-slate-800 pb-4 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+              DUAL-USE CIVIL COMMERCIALIZATION
+            </span>
+            <span class="text-xs text-slate-400 font-mono">Non-Defense Critical Infrastructure Software</span>
+          </div>
+          <h2 class="text-xl font-bold text-white mt-1">Nationwide Recurring Revenue (ARR): $245.8M Market Opportunity</h2>
+        </div>
+        <div class="text-right">
+          <div class="text-lg font-mono font-bold text-emerald-400">$2.45B–$2.95B</div>
+          <div class="text-[10px] text-slate-400 font-mono">Enterprise Valuation @ 10x–12x Software Multiple</div>
+        </div>
+      </div>
+
+      <!-- Executive Pitch Box -->
+      <div class="bg-cyan-950/20 border border-cyan-800/40 rounded-xl p-4 text-xs text-cyan-200 leading-relaxed">
+        <strong class="text-white font-semibold">Executive Value Proposition:</strong> Unshielded and high-altitude/vacuum high-voltage infrastructure loses over $3.2B annually to catastrophic arc flashovers that could have been predicted minutes in advance. LunarGlow translates NASA vacuum partial-discharge admittance algorithms into commercial firmware for utility renewables, aviation, and semiconductor fabs—transforming destructive insulation blowouts into self-clearing micro-events.
+      </div>
+
+      <!-- ARR Breakdown Table -->
+      <div class="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="p-4 border-b border-slate-800 bg-slate-900/60 flex items-center justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200 font-mono">
+            Commercial Vertical ARR Distribution Matrix
+          </h3>
+          <span class="text-[11px] font-mono text-emerald-400">Total Mature ARR: $245.8M</span>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800">
+              <tr>
+                <th class="p-3">Commercial Vertical</th>
+                <th class="p-3">Primary Target Asset</th>
+                <th class="p-3">SaaS / Firmware Unit Price</th>
+                <th class="p-3">Nationwide Asset Base</th>
+                <th class="p-3 text-right">Mature ARR ($M)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 text-slate-300">
+              <tr class="hover:bg-slate-800/30">
+                <td class="p-3 font-semibold text-white">Commercial Space & Lunar CLPS</td>
+                <td class="p-3 text-slate-400">Lander microgrids, orbital depots, FSP lines</td>
+                <td class="p-3">$75,000 / node / yr</td>
+                <td class="p-3">160 deployed orbit/lunar nodes</td>
+                <td class="p-3 text-right font-bold text-emerald-400">$12.0M</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="p-3 font-semibold text-white">Semiconductor EUV & Deposition</td>
+                <td class="p-3 text-slate-400">High-voltage vacuum wafer etch & litho chambers</td>
+                <td class="p-3">$18,000 / fab tool / yr</td>
+                <td class="p-3">3,200 tools nationwide</td>
+                <td class="p-3 text-right font-bold text-emerald-400">$57.6M</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="p-3 font-semibold text-white">Commercial Aviation Hybrid-Electric</td>
+                <td class="p-3 text-slate-400">1 kV–3 kV high-altitude unpressurized nacelle cables</td>
+                <td class="p-3">$4,500 / aircraft / yr</td>
+                <td class="p-3">11,500 regional / eVTOL airframes</td>
+                <td class="p-3 text-right font-bold text-emerald-400">$51.75M</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="p-3 font-semibold text-white">Utility-Scale Solar + Storage Microgrids</td>
+                <td class="p-3 text-slate-400">1,500V DC string combiners & desert array joints</td>
+                <td class="p-3">$1,200 / MW inverter / yr</td>
+                <td class="p-3">68,000 MW operational capacity</td>
+                <td class="p-3 text-right font-bold text-emerald-400">$81.6M</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="p-3 font-semibold text-white">Autonomous Surface Mining Equipment</td>
+                <td class="p-3 text-slate-400">4,160V trailing cables & haul truck DC drives</td>
+                <td class="p-3">$5,500 / heavy excavator / yr</td>
+                <td class="p-3">4,800 active open-pit machines</td>
+                <td class="p-3 text-right font-bold text-emerald-400">$26.4M</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="p-3 font-semibold text-white">Subsea HVDC Interconnect Links</td>
+                <td class="p-3 text-slate-400">Offshore wind DC transmission joint monitors</td>
+                <td class="p-3">$45,000 / offshore converter station / yr</td>
+                <td class="p-3">365 offshore converter nodes</td>
+                <td class="p-3 text-right font-bold text-emerald-400">$16.45M</td>
+              </tr>
+            </tbody>
+            <tfoot class="bg-slate-950 font-bold border-t border-slate-700">
+              <tr>
+                <td colspan="4" class="p-3 text-right uppercase text-slate-400">Cumulative Civil Annual Recurring Revenue:</td>
+                <td class="p-3 text-right text-emerald-300 text-sm">$245.80M</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Industry Deep-Dive Cards (Physics & Why Others Missed It) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        
+        <!-- Card 1: Semiconductor EUV -->
+        <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-4 space-y-2">
+          <div class="flex items-center space-x-2 text-cyan-400 font-bold text-xs uppercase tracking-wider font-mono">
+            <i data-lucide="cpu" class="w-4 h-4"></i>
+            <span>Semiconductor EUV & Etch</span>
+          </div>
+          <p class="text-xs text-slate-200">
+            <strong>Physics in 1 Sentence:</strong> Extreme RF and DC bias in high-vacuum plasma chambers triggers localized sheath insulation breakdown at sharp electrodes long before optical arc detectors trigger.
+          </p>
+          <p class="text-xs text-slate-400">
+            <span class="text-rose-400 font-semibold">Why Others Missed This:</span> Incumbent fabs rely on optical flash detectors that trigger only after the arc has struck, destroying $250k silicon wafer batches and contaminating optical mirrors.
+          </p>
+        </div>
+
+        <!-- Card 2: Hybrid-Electric Aviation -->
+        <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-4 space-y-2">
+          <div class="flex items-center space-x-2 text-cyan-400 font-bold text-xs uppercase tracking-wider font-mono">
+            <i data-lucide="plane" class="w-4 h-4"></i>
+            <span>Commercial Aviation (eVTOL)</span>
+          </div>
+          <p class="text-xs text-slate-200">
+            <strong>Physics in 1 Sentence:</strong> At 35,000 feet, low ambient atmospheric pressure drops the dielectric breakdown voltage along unpressurized 1–3 kV feeder lines straight into the Paschen curve minimum.
+          </p>
+          <p class="text-xs text-slate-400">
+            <span class="text-rose-400 font-semibold">Why Others Missed This:</span> Aviation OEMs simply added heavy, bulky shielded conduit; LunarGlow replaces hundreds of pounds of shielding with intelligent harmonic admittance sensing.
+          </p>
+        </div>
+
+        <!-- Card 3: Utility Solar + Storage -->
+        <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-4 space-y-2">
+          <div class="flex items-center space-x-2 text-cyan-400 font-bold text-xs uppercase tracking-wider font-mono">
+            <i data-lucide="sun" class="w-4 h-4"></i>
+            <span>Utility Desert Solar Grids</span>
+          </div>
+          <p class="text-xs text-slate-200">
+            <strong>Physics in 1 Sentence:</strong> Windblown mineral dust accumulation across connector gaskets creates micro-tracking leakage that shifts cable admittance from pure capacitive to dissipative high-frequency conductance.
+          </p>
+          <p class="text-xs text-slate-400">
+            <span class="text-rose-400 font-semibold">Why Others Missed This:</span> Field technicians wait until string inverters trip on hard ground faults or catch fire; LunarGlow flags degraded connectors 30 days before runaway thermal ionization.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Enterprise Investor & Partnership Footer -->
+      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h4 class="text-sm font-bold text-white">Commercial Licensing & Strategic Integration Inquiries</h4>
+          <p class="text-xs text-slate-400 mt-0.5">Direct communication with Principal Investigator & Commercialization Team</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <a href="mailto:support@rfwavecode.com" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-2 transition shadow-lg shadow-cyan-950/50">
+            <i data-lucide="mail" class="w-4 h-4"></i>
+            <span>support@rfwavecode.com</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Global Footer -->
+  <footer class="border-t border-slate-800/80 bg-[#05070d] py-4 text-center text-xs text-slate-500 font-mono">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div>LunarGlow High-Voltage Partial Discharge Sentinel • NASA SBIR/STTR Topic T4.02</div>
+      <div>Autonomous $(f, G)$ Micro-Plasma Observer • University Research Partner: UCF CATER Labs</div>
+    </div>
+  </footer>
+
+  <!-- ======================================================== -->
+  <!-- JAVASCRIPT: SIMULATION, CHARTS, LOGIC & MATHJAX ENGINE   -->
+  <!-- ======================================================== -->
+  <script>
+    // Explicit tab mapping dictionary to avoid black screens
+    const tabMapping = {
+      'sim': { viewId: 'viewSim', btnId: 'tabBtnSim' },
+      'physics': { viewId: 'viewPhysics', btnId: 'tabBtnPhysics' },
+      'proposal': { viewId: 'viewProposal', btnId: 'tabBtnProposal' },
+      'arr': { viewId: 'viewARR', btnId: 'tabBtnARR' }
+    };
+
+    function switchTab(targetKey) {
+      Object.keys(tabMapping).forEach(key => {
+        const item = tabMapping[key];
+        const viewEl = document.getElementById(item.viewId);
+        const btnEl = document.getElementById(item.btnId);
+
+        if (key === targetKey) {
+          viewEl.classList.remove('hidden');
+          btnEl.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 flex items-center space-x-2 text-white bg-cyan-600/30 border border-cyan-500/40 shadow-sm";
+        } else {
+          viewEl.classList.add('hidden');
+          btnEl.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 flex items-center space-x-2 text-slate-400 hover:text-slate-200";
+        }
+      });
+
+      // Force MathJax to re-render in newly visible views
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise();
+      }
+
+      // Re-trigger icon rendering
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+
+      // If returning to simulation tab, immediately resize canvas and charts
+      if (targetKey === 'sim') {
+        resizeCanvas();
+        if (phaseChart) phaseChart.resize();
+        if (tsCondChart) tsCondChart.resize();
+        if (tsFreqChart) tsFreqChart.resize();
+      }
+    }
+
+    // ----------------------------------------------------
+    // PHYSICAL SIMULATION ENGINE & SYSTEM STATE
+    // ----------------------------------------------------
+    const state = {
+      voltage: 10.0,            // kV DC
+      pressureLog: -7.0,        // log10(Torr), -9 to +1
+      dustPct: 5.0,             // 0 - 100 %
+      conductance: 0.12,        // nS
+      frequency: 14.2,          // kHz
+      coronaInception: false,
+      flashoverRisk: 'NOMINAL', // 'NOMINAL', 'PRE_DISCHARGE', 'ARCFATAL'
+      autoMitigationActive: false,
+      autoGovernorEnabled: true,
+      mitigationTimer: 0,
+      particles: [],
+      plasmaBolts: [],
+      timeStep: 0
+    };
+
+    // DOM Element References
+    const inputVoltage = document.getElementById('inputVoltage');
+    const inputPressure = document.getElementById('inputPressure');
+    const inputDust = document.getElementById('inputDust');
+    const toggleAutoGovernor = document.getElementById('toggleAutoGovernor');
+
+    const statVoltage = document.getElementById('statVoltage');
+    const statConductance = document.getElementById('statConductance');
+    const statFrequency = document.getElementById('statFrequency');
+    const statStateText = document.getElementById('statStateText');
+    const statStateBadge = document.getElementById('statStateBadge');
+    const statActionText = document.getElementById('statActionText');
+
+    const sliderVoltageVal = document.getElementById('sliderVoltageVal');
+    const sliderPressureVal = document.getElementById('sliderPressureVal');
+    const sliderDustVal = document.getElementById('sliderDustVal');
+
+    const labelPressure = document.getElementById('labelPressure');
+    const labelRegolith = document.getElementById('labelRegolith');
+    const hudInceptionVal = document.getElementById('hudInceptionVal');
+    const hudGammaVal = document.getElementById('hudGammaVal');
+    const mitigationBanner = document.getElementById('mitigationBanner');
+    const telemetryConfidence = document.getElementById('telemetryConfidence');
+    const telemetryLeadTime = document.getElementById('telemetryLeadTime');
+
+    // Controls Event Listeners
+    inputVoltage.addEventListener('input', (e) => {
+      state.voltage = parseFloat(e.target.value);
+      sliderVoltageVal.innerText = state.voltage.toFixed(1) + ' kV';
+    });
+
+    inputPressure.addEventListener('input', (e) => {
+      state.pressureLog = parseFloat(e.target.value);
+      const torrVal = Math.pow(10, state.pressureLog);
+      sliderPressureVal.innerText = torrVal < 0.001 ? torrVal.toExponential(1) + ' Torr' : torrVal.toFixed(2) + ' Torr';
+      labelPressure.innerText = torrVal < 0.001 ? torrVal.toExponential(1) : torrVal.toFixed(2);
+    });
+
+    inputDust.addEventListener('input', (e) => {
+      state.dustPct = parseFloat(e.target.value);
+      sliderDustVal.innerText = state.dustPct.toFixed(0) + ' %';
+      labelRegolith.innerText = state.dustPct.toFixed(0);
+    });
+
+    toggleAutoGovernor.addEventListener('change', (e) => {
+      state.autoGovernorEnabled = e.target.checked;
+    });
+
+    // Helper Interactive Buttons
+    function injectRegolithBurst() {
+      state.dustPct = Math.min(100, state.dustPct + 45);
+      inputDust.value = state.dustPct;
+      sliderDustVal.innerText = state.dustPct.toFixed(0) + ' %';
+      labelRegolith.innerText = state.dustPct.toFixed(0);
+    }
+
+    function triggerOutgassingLeak() {
+      state.pressureLog = -1.2; // Right into Paschen minimum peak ionization
+      inputPressure.value = state.pressureLog;
+      const torrVal = Math.pow(10, state.pressureLog);
+      sliderPressureVal.innerText = torrVal.toFixed(2) + ' Torr';
+      labelPressure.innerText = torrVal.toFixed(2);
+    }
+
+    function resetGridNominal() {
+      state.voltage = 10.0;
+      state.pressureLog = -7.0;
+      state.dustPct = 5.0;
+      state.autoMitigationActive = false;
+      inputVoltage.value = 10.0;
+      inputPressure.value = -7.0;
+      inputDust.value = 5.0;
+      sliderVoltageVal.innerText = '10.0 kV';
+      sliderPressureVal.innerText = '1.0e-7 Torr';
+      sliderDustVal.innerText = '5 %';
+      labelPressure.innerText = '1.0e-7';
+      labelRegolith.innerText = '5';
+      mitigationBanner.classList.add('hidden');
+    }
+
+    // ----------------------------------------------------
+    // HARDWARE CANVAS RENDERING (10 kV CABLE & PLASMA JOINT)
+    // ----------------------------------------------------
+    const canvas = document.getElementById('cableCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width || 600;
+      const h = rect.height || 300;
+      canvas.width = w * window.devicePixelRatio;
+      canvas.height = h * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initialize physical dust & plasma particles
+    function initParticles() {
+      state.particles = [];
+      for (let i = 0; i < 90; i++) {
+        state.particles.push({
+          x: Math.random() * 800,
+          y: Math.random() * 320,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.4,
+          size: 1 + Math.random() * 2.5,
+          charge: Math.random() > 0.5 ? 1 : -1,
+          alpha: 0.2 + Math.random() * 0.6
+        });
+      }
+    }
+    initParticles();
+
+    // Physics Update Loop
+    function updatePhysicsModel() {
+      state.timeStep++;
+
+      // Effective Gas Ionization Factor based on Paschen Minimum (~0.1 to 1 Torr)
+      // Log scale centered at -1 (0.1 Torr)
+      const paschenStress = Math.exp(-Math.pow(state.pressureLog - (-1.0), 2) / 1.4);
+      
+      // Regolith Electric Field Multiplier
+      const regolithStress = (state.dustPct / 100) * 1.8;
+
+      // Applied Voltage Stress Factor (10 kV baseline is 1.0)
+      const voltageFactor = state.voltage / 10.0;
+
+      // Inception Threshold Index
+      const totalStress = (voltageFactor * 0.9) + (paschenStress * 2.8) + (regolithStress * 1.5);
+
+      // Evaluate Townsend secondary emission gamma
+      const gamma = 0.015 + (paschenStress * 0.08) + (regolithStress * 0.04);
+      hudGammaVal.innerText = gamma.toFixed(4);
+
+      // Determine Spectral Conductance (G) and Frequency (f)
+      if (totalStress < 1.45) {
+        // Nominal Vacuum Baseline
+        state.coronaInception = false;
+        state.flashoverRisk = 'NOMINAL';
+        state.conductance = Math.max(0.05, 0.10 + (Math.sin(state.timeStep * 0.1) * 0.03) + (state.dustPct * 0.002));
+        state.frequency = Math.max(8.0, 12.0 + Math.cos(state.timeStep * 0.08) * 2.5);
+        hudInceptionVal.innerText = "Quenched / Inactive";
+        hudInceptionVal.className = "text-emerald-400";
+      } else if (totalStress >= 1.45 && totalStress < 3.2) {
+        // Pre-Discharge Micro-Plasma Band: Localized corona ionization shifts f high
+        state.coronaInception = true;
+        state.flashoverRisk = 'PRE_DISCHARGE';
+        
+        // High-frequency harmonic conductance rises non-linearly
+        const spike = Math.random() * 0.4;
+        state.conductance = 0.4 + (totalStress - 1.45) * 1.35 + spike;
+        // Frequency shifts dramatically toward 40–80 kHz harmonic band
+        state.frequency = 25.0 + (totalStress - 1.45) * 24.0 + (Math.random() * 5.0);
+
+        hudInceptionVal.innerText = "Active Corona Ionization";
+        hudInceptionVal.className = "text-amber-400";
+      } else {
+        // Catastrophic Arc / Flashover Imminent Boundary
+        state.coronaInception = true;
+        state.flashoverRisk = 'ARCFATAL';
+        state.conductance = 3.5 + Math.random() * 2.2;
+        state.frequency = 75.0 + Math.random() * 18.0;
+
+        hudInceptionVal.innerText = "CRITICAL ARCOVER FLASH";
+        hudInceptionVal.className = "text-rose-400 font-bold animate-pulse";
+      }
+
+      // Closed-Loop Autonomous Mitigation Trigger
+      if (state.autoGovernorEnabled && state.coronaInception) {
+        state.autoMitigationActive = true;
+        mitigationBanner.classList.remove('hidden');
+
+        // Step down voltage rapidly toward safe 2.5 kV Paschen extinction
+        if (state.voltage > 2.5) {
+          state.voltage = Math.max(2.5, state.voltage - 0.45);
+          inputVoltage.value = state.voltage.toFixed(1);
+          sliderVoltageVal.innerText = state.voltage.toFixed(1) + ' kV';
+        }
+
+        // Electrostatic acoustic vibration clears dust
+        if (state.dustPct > 6) {
+          state.dustPct = Math.max(5, state.dustPct - 2.5);
+          inputDust.value = state.dustPct.toFixed(0);
+          sliderDustVal.innerText = state.dustPct.toFixed(0) + ' %';
+          labelRegolith.innerText = state.dustPct.toFixed(0);
+        }
+      } else if (!state.coronaInception) {
+        if (state.autoMitigationActive) {
+          state.mitigationTimer++;
+          if (state.mitigationTimer > 50) {
+            state.autoMitigationActive = false;
+            mitigationBanner.classList.add('hidden');
+            state.mitigationTimer = 0;
+          }
+        }
+      }
+
+      // Update HUD Stats
+      statVoltage.innerText = state.voltage.toFixed(1) + ' kV';
+      statConductance.innerText = state.conductance.toFixed(2) + ' nS';
+      statFrequency.innerText = state.frequency.toFixed(1) + ' kHz';
+
+      if (state.flashoverRisk === 'NOMINAL') {
+        statStateText.innerText = "VACUUM NOMINAL";
+        statStateBadge.className = "mt-1 flex items-center space-x-2";
+        statStateBadge.innerHTML = `
+          <span class="px-2.5 py-1 rounded text-xs font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/60 flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>VACUUM NOMINAL</span>
+          </span>
+        `;
+        statActionText.innerText = "Auto Mitigation: Idle";
+        telemetryLeadTime.innerText = "> 120 s (Nominal)";
+        telemetryLeadTime.className = "text-emerald-400 font-bold";
+      } else if (state.flashoverRisk === 'PRE_DISCHARGE') {
+        statStateBadge.innerHTML = `
+          <span class="px-2.5 py-1 rounded text-xs font-mono font-bold bg-amber-950 text-amber-300 border border-amber-800/60 flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            <span>PRE-DISCHARGE CORONA</span>
+          </span>
+        `;
+        statActionText.innerText = state.autoGovernorEnabled ? "PDU De-Stressing Active" : "WARNING: Manual Action Req";
+        telemetryLeadTime.innerText = "4.2 s (Pre-Arc Window)";
+        telemetryLeadTime.className = "text-amber-400 font-bold animate-pulse";
+      } else {
+        statStateBadge.innerHTML = `
+          <span class="px-2.5 py-1 rounded text-xs font-mono font-bold bg-rose-950 text-rose-300 border border-rose-800/60 flex items-center space-x-1.5 glow-rose">
+            <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+            <span>ARCOVER FLASH HAZARD</span>
+          </span>
+        `;
+        statActionText.innerText = "EMERGENCY TRIP INITIATED";
+        telemetryLeadTime.innerText = "< 15 ms (Arc Flash)";
+        telemetryLeadTime.className = "text-rose-400 font-bold animate-pulse";
+      }
+
+      // Generate localized micro-plasma arcs if in corona/breakdown
+      if (state.coronaInception) {
+        if (Math.random() > 0.3) {
+          const jointX = 400; // Center joint coordinate
+          state.plasmaBolts.push({
+            x1: jointX + (Math.random() - 0.5) * 60,
+            y1: 140 + (Math.random() - 0.5) * 15,
+            x2: jointX + (Math.random() - 0.5) * 80,
+            y2: 180 + (Math.random() - 0.5) * 20,
+            intensity: state.flashoverRisk === 'ARCFATAL' ? 1.0 : 0.45,
+            life: 6 + Math.floor(Math.random() * 8)
+          });
+        }
+      }
+    }
+
+    // Render Canvas Frame
+    function renderCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width || 600;
+      const h = rect.height || 300;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Deep lunar vacuum background with subtle grid lines
+      ctx.fillStyle = "#020408";
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = "rgba(30, 41, 59, 0.4)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Draw Lunar Regolith Ground Plane
+      ctx.fillStyle = "#0d131f";
+      ctx.fillRect(0, h - 50, w, 50);
+      ctx.strokeStyle = "#1e293b";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, h - 50);
+      ctx.lineTo(w, h - 50);
+      ctx.stroke();
+
+      // Regolith surface texture & craters
+      ctx.fillStyle = "rgba(71, 85, 105, 0.25)";
+      for (let i = 20; i < w; i += 60) {
+        ctx.beginPath();
+        ctx.ellipse(i, h - 45, 12, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Stanchions / Cable Supports
+      const stanchionX = [80, w - 80];
+      stanchionX.forEach(sx => {
+        ctx.fillStyle = "#334155";
+        ctx.fillRect(sx - 4, h - 140, 8, 90);
+        // Ceramic bell insulators
+        ctx.fillStyle = "#0284c7";
+        for (let b = 0; b < 3; b++) {
+          ctx.beginPath();
+          ctx.ellipse(sx, h - 140 + (b * 12), 14, 5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+      });
+
+      // The 10 kV DC Transmission Line (Center Cable)
+      const cableY = h - 140;
+      ctx.strokeStyle = "#64748b";
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(0, cableY);
+      ctx.lineTo(w, cableY);
+      ctx.stroke();
+
+      // Outer Insulation Sheath
+      ctx.strokeStyle = "#0284c7";
+      ctx.lineWidth = 10;
+      ctx.globalAlpha = 0.4;
+      ctx.beginPath();
+      ctx.moveTo(0, cableY);
+      ctx.lineTo(w, cableY);
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+
+      // Compromised Cable Joint in Center
+      const jointX = w / 2;
+      const jointW = 85;
+      const jointH = 28;
+
+      // Joint Potting Sleeve (Transparent to show internal void)
+      ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+      ctx.strokeStyle = state.coronaInception ? "#f59e0b" : "#38bdf8";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(jointX - jointW / 2, cableY - jointH / 2, jointW, jointH);
+      ctx.fillRect(jointX - jointW / 2, cableY - jointH / 2, jointW, jointH);
+
+      // Potting Void / Micro-Atmosphere Defect Zone
+      const voidW = 40;
+      const voidH = 14;
+      ctx.fillStyle = state.coronaInception 
+        ? "rgba(245, 158, 11, 0.35)" 
+        : "rgba(6, 182, 212, 0.12)";
+      ctx.fillRect(jointX - voidW / 2, cableY - voidH / 2, voidW, voidH);
+
+      // High-Frequency Rogowski PD Sensor Coil Wrapped Around Joint
+      ctx.strokeStyle = "#a855f7";
+      ctx.lineWidth = 3;
+      for (let c = -jointW / 2 + 5; c < jointW / 2; c += 10) {
+        ctx.beginPath();
+        ctx.arc(jointX + c, cableY, 16, -Math.PI / 2, Math.PI / 2);
+        ctx.stroke();
+      }
+
+      // Draw Electrostatic Regolith Dust Swarm
+      state.particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Wrap around boundaries
+        if (p.x < 0) p.x = w;
+        if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h - 55;
+        if (p.y > h - 55) p.y = 0;
+
+        // If mitigation active, push particles away from cable (dielectrophoretic repulsion)
+        if (state.autoMitigationActive) {
+          const dy = p.y - cableY;
+          if (Math.abs(dy) < 60) {
+            p.y += dy > 0 ? 1.5 : -1.5;
+          }
+        }
+
+        ctx.fillStyle = `rgba(203, 213, 225, ${p.alpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Render Micro-Plasma Corona Sparks & Bolts
+      for (let i = state.plasmaBolts.length - 1; i >= 0; i--) {
+        const b = state.plasmaBolts[i];
+        ctx.save();
+        ctx.strokeStyle = state.flashoverRisk === 'ARCFATAL' ? '#f43f5e' : '#38bdf8';
+        ctx.shadowColor = state.flashoverRisk === 'ARCFATAL' ? '#e11d48' : '#06b6d4';
+        ctx.shadowBlur = 12 * b.intensity;
+        ctx.lineWidth = 2 * b.intensity;
+
+        ctx.beginPath();
+        ctx.moveTo(b.x1, cableY);
+        // Jagged Townsend arc path
+        const midX = (b.x1 + b.x2) / 2 + (Math.random() - 0.5) * 15;
+        const midY = (cableY + b.y2) / 2 + (Math.random() - 0.5) * 8;
+        ctx.lineTo(midX, midY);
+        ctx.lineTo(b.x2, b.y2);
+        ctx.stroke();
+        ctx.restore();
+
+        b.life--;
+        if (b.life <= 0) {
+          state.plasmaBolts.splice(i, 1);
+        }
+      }
+
+      // Active Voltage Field Glow along Cable
+      ctx.save();
+      ctx.fillStyle = state.coronaInception ? "rgba(244, 63, 94, 0.15)" : "rgba(6, 182, 212, 0.08)";
+      ctx.filter = "blur(12px)";
+      ctx.fillRect(0, cableY - 25, w, 50);
+      ctx.restore();
+
+      // Joint Sensor Annotation Label
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "10px JetBrains Mono";
+      ctx.fillText("PD SENSOR JOINT J-4L", jointX - 60, cableY - 32);
+      ctx.strokeStyle = "#475569";
+      ctx.beginPath();
+      ctx.moveTo(jointX, cableY - 28);
+      ctx.lineTo(jointX, cableY - 18);
+      ctx.stroke();
+    }
+
+    // ----------------------------------------------------
+    // CHART.JS INITIALIZATION (PHASE-SPACE & TIME-SERIES)
+    // ----------------------------------------------------
+    let phaseChart, tsCondChart, tsFreqChart;
+
+    // Phase-Space Chart: Conductance (G) [nS] vs Frequency (f) [kHz]
+    function initPhaseSpaceChart() {
+      const ctxPhase = document.getElementById('phaseSpaceChart').getContext('2d');
+
+      // Baseline nominal curve data
+      const nominalPoints = [];
+      for (let f = 5; f <= 30; f += 2) {
+        nominalPoints.push({ x: 0.08 + (f * 0.003), y: f });
+      }
+
+      // Hazard boundary curve (Red corridor threshold)
+      const hazardBoundary = [
+        { x: 0.35, y: 10 },
+        { x: 0.55, y: 25 },
+        { x: 0.90, y: 45 },
+        { x: 1.60, y: 70 },
+        { x: 2.80, y: 95 }
+      ];
+
+      phaseChart = new Chart(ctxPhase, {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: 'Nominal Operating Corridor',
+              data: nominalPoints,
+              showLine: true,
+              borderColor: 'rgba(16, 185, 129, 0.6)',
+              borderWidth: 2,
+              borderDash: [4, 4],
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: 'Inception Hazard Boundary',
+              data: hazardBoundary,
+              showLine: true,
+              borderColor: 'rgba(244, 63, 94, 0.8)',
+              borderWidth: 2,
+              borderDash: [6, 4],
+              pointRadius: 0,
+              backgroundColor: 'rgba(244, 63, 94, 0.08)',
+              fill: true
+            },
+            {
+              label: 'Historical Trajectory',
+              data: [],
+              showLine: true,
+              borderColor: 'rgba(139, 92, 246, 0.4)',
+              borderWidth: 1.5,
+              pointRadius: 2,
+              pointBackgroundColor: '#8b5cf6'
+            },
+            {
+              label: 'Live Operating State',
+              data: [{ x: 0.12, y: 14.2 }],
+              pointRadius: 8,
+              pointHoverRadius: 10,
+              pointBackgroundColor: '#06b6d4',
+              borderColor: '#ffffff',
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 0 },
+          scales: {
+            x: {
+              type: 'linear',
+              position: 'bottom',
+              min: 0,
+              max: 4.5,
+              title: {
+                display: true,
+                text: 'High-Frequency Conductance G (nS)',
+                color: '#94a3b8',
+                font: { family: 'JetBrains Mono', size: 10 }
+              },
+              grid: { color: 'rgba(30, 41, 59, 0.5)' },
+              ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 9 } }
+            },
+            y: {
+              min: 0,
+              max: 100,
+              title: {
+                display: true,
+                text: 'Harmonic Inception Frequency f (kHz)',
+                color: '#94a3b8',
+                font: { family: 'JetBrains Mono', size: 10 }
+              },
+              grid: { color: 'rgba(30, 41, 59, 0.5)' },
+              ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 9 } }
+            }
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: (c) => `G: ${c.raw.x.toFixed(2)} nS | f: ${c.raw.y.toFixed(1)} kHz`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Time Series Charts (Rolling Conductance and Frequency)
+    const rollingLabels = Array(30).fill('');
+    const rollingG = Array(30).fill(0.12);
+    const rollingF = Array(30).fill(14.2);
+
+    function initTimeSeriesCharts() {
+      const ctxG = document.getElementById('timeSeriesConductance').getContext('2d');
+      tsCondChart = new Chart(ctxG, {
+        type: 'line',
+        data: {
+          labels: rollingLabels,
+          datasets: [{
+            label: 'Admittance G (nS)',
+            data: rollingG,
+            borderColor: '#38bdf8',
+            backgroundColor: 'rgba(56, 189, 248, 0.1)',
+            fill: true,
+            borderWidth: 2,
+            tension: 0.3,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 0 },
+          scales: {
+            y: {
+              min: 0,
+              max: 5,
+              grid: { color: 'rgba(30, 41, 59, 0.5)' },
+              ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 8 } }
+            },
+            x: { display: false }
+          },
+          plugins: {
+            legend: {
+              display: true,
+              labels: { color: '#94a3b8', boxWidth: 10, font: { family: 'JetBrains Mono', size: 9 } }
+            }
+          }
+        }
+      });
+
+      const ctxF = document.getElementById('timeSeriesFrequency').getContext('2d');
+      tsFreqChart = new Chart(ctxF, {
+        type: 'line',
+        data: {
+          labels: rollingLabels,
+          datasets: [{
+            label: 'Inception Frequency f (kHz)',
+            data: rollingF,
+            borderColor: '#a855f7',
+            backgroundColor: 'rgba(168, 85, 247, 0.1)',
+            fill: true,
+            borderWidth: 2,
+            tension: 0.3,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 0 },
+          scales: {
+            y: {
+              min: 0,
+              max: 100,
+              grid: { color: 'rgba(30, 41, 59, 0.5)' },
+              ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 8 } }
+            },
+            x: { display: false }
+          },
+          plugins: {
+            legend: {
+              display: true,
+              labels: { color: '#94a3b8', boxWidth: 10, font: { family: 'JetBrains Mono', size: 9 } }
+            }
+          }
+        }
+      });
+    }
+
+    // Trajectory buffer for Phase-Space scatter plot
+    const phaseTrajectory = [];
+
+    function updateCharts() {
+      if (!phaseChart || !tsCondChart || !tsFreqChart) return;
+
+      // Update Phase-Space live point
+      phaseChart.data.datasets[3].data = [{ x: state.conductance, y: state.frequency }];
+
+      // Adjust live dot color depending on risk state
+      if (state.flashoverRisk === 'NOMINAL') {
+        phaseChart.data.datasets[3].pointBackgroundColor = '#10b981';
+      } else if (state.flashoverRisk === 'PRE_DISCHARGE') {
+        phaseChart.data.datasets[3].pointBackgroundColor = '#f59e0b';
+      } else {
+        phaseChart.data.datasets[3].pointBackgroundColor = '#f43f5e';
+      }
+
+      // Add point to trajectory history
+      phaseTrajectory.push({ x: state.conductance, y: state.frequency });
+      if (phaseTrajectory.length > 25) phaseTrajectory.shift();
+      phaseChart.data.datasets[2].data = [...phaseTrajectory];
+
+      phaseChart.update('none');
+
+      // Update rolling time-series
+      rollingG.push(state.conductance);
+      rollingG.shift();
+      rollingF.push(state.frequency);
+      rollingF.shift();
+
+      tsCondChart.update('none');
+      tsFreqChart.update('none');
+    }
+
+    // ----------------------------------------------------
+    // MAIN ANIMATION & SIMULATION LOOP
+    // ----------------------------------------------------
+    let tickCount = 0;
+
+    function mainLoop() {
+      updatePhysicsModel();
+      renderCanvas();
+
+      // Throttled Chart Updates (every 3 frames) for high performance
+      tickCount++;
+      if (tickCount % 3 === 0) {
+        updateCharts();
+      }
+
+      requestAnimationFrame(mainLoop);
+    }
+
+    // Window Onload Initialization
+    window.onload = function () {
+      resizeCanvas();
+      initPhaseSpaceChart();
+      initTimeSeriesCharts();
+      
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+      
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise();
+      }
+
+      // Start animation loop
+      requestAnimationFrame(mainLoop);
+    };
+  </script>
+</body>
+</html>
